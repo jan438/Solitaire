@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="js/hashmap.min.js"></script>
+    <script type="text/javascript" src="js/sinon-1.17.2.js"></script>
+    <script type="text/javascript" src="js/sweetalert.min.js"></script>
+    <title>Solitaire</title>
+    <link href="css/solitaire.css" rel="stylesheet">
+    <link href="css/sweetalert.css" rel="stylesheet">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+	<div id="container">
+		<button id="reset" class="button">Reset</button>
+		<table id="gameoptions" class="table table-bordered">
+			<tr><td class="option">Count of cards</td><td class="chkbx">1</td><td class="chkbx">3</td></tr>
+			<tr><td class="option"></td><td class="chkbx"><input type="checkbox" id="chkone" checked /></td><td class="chkbx"><input type="checkbox" id="chkthree" /></td></tr>
+		</table>
+	</div>
+	<div id="topbar">
+		<div id="stopwatch">
+			<span style="color:white" id="sw_h">00</span>:
+			<span style="color:white" id="sw_m">00</span>:
+			<span style="color:white" id="sw_s">00</span>:
+			<span style="color:white" id="sw_ms">00</span>
+			<span style="color:white" id="sw_status">Idle</span>
+		</div>
+	</div>
+	<script src="js/solitairedeck.js"></script>
+	<script src="js/solitaire.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function () {
+			var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+			var isFirefox = typeof InstallTrigger !== 'undefined';
+			var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
+			var isIE = /*@cc_on!@*/false || !!document.documentMode;
+			var isEdge = !isIE && !!window.StyleMedia;
+			var isChrome = !!window.chrome && !!window.chrome.webstore;
+			var isBlink = (isChrome || isOpera) && !!window.CSS;
+			console.log("Firefox: " + isFirefox + " Chrome: " + isChrome + " IE: " + isIE);
+			var x1;
+			var x2;
+			var x3;
+			var x4;
+			if (isFirefox) {
+				x1 = 580;
+				x2 = 672;
+				x3 = 764;
+				x4 = 856;
+			}
+			if (isChrome) {
+				x1 = 569;
+				x2 = 661;
+				x3 = 753;
+				x4 = 845;
+			}
+			if (isIE) {
+				x1 = 569;
+				x2 = 661;
+				x3 = 753;
+				x4 = 845;
+			}
+			var width = 75;
+			var height = 110;
+			var canvas = document.createElement('canvas');
+			canvas.style.width='100%';
+			canvas.style.height='100%';
+			canvas.width = window.innerWidth;
+			canvas.height = window.innerHeight;
+			canvas.style.position='absolute';
+			canvas.style.left=0;
+			canvas.style.top=0;
+			canvas.style.zIndex=-1001;
+			canvas.style.pointerEvents='none';
+			document.body.appendChild(canvas);
+			var context = canvas.getContext('2d');
+			context.strokeStyle = '#006666';
+			context.lineWidth = 45;
+			var spade = new Image();
+			spade.src = 'spade.png';
+			spade.onload = function() {
+				var pattern1 = context.createPattern(spade, 'repeat');
+				context.fillStyle = pattern1;
+				context.fillRect(x1, 120, width, height);
+				context.strokeRect(x1, 120, width, height);
+			};
+			var heart = new Image();
+			heart.src = 'heart.png';
+			heart.onload = function() {
+				var pattern4 = context.createPattern(heart, 'repeat');
+				context.fillStyle = pattern4;
+				context.fillRect(x2, 120, width, height);
+				context.strokeRect(x2, 120, width, height);
+			};
+			var club = new Image();
+			club.src = 'club.png';
+			club.onload = function() {
+				var pattern3 = context.createPattern(club, 'repeat');
+				context.fillStyle = pattern3;
+				context.fillRect(x3, 120, width, height);
+				context.strokeRect(x3, 120, width, height);
+			};
+			var diamond = new Image();
+			diamond.src = 'diamond.png';
+			diamond.onload = function() {
+				var pattern2 = context.createPattern(diamond, 'repeat');
+				context.fillStyle = pattern2;
+				context.fillRect(x4, 120, width, height);
+				context.strokeRect(x4, 120, width, height);
+			};
+			$("#reset").click(function() {
+				reset()
+			});
+			(function($){
+				$.extend({
+					APP : {
+						formatTimer : function(a) {
+							if (a < 10) {
+								a = '0' + a;
+							}
+							return a;
+						},
+						startTimer : function(dir) {
+							var a;
+							$.APP.dir = dir;
+							$.APP.d1 = new Date();
+							switch($.APP.state) {
+								case 'pause' :
+									$.APP.t1 = $.APP.d1.getTime() - $.APP.td;
+									break;
+								default :
+									$.APP.t1 = $.APP.d1.getTime();
+									if ($.APP.dir === 'cd') {
+										$.APP.t1 += parseInt($('#cd_seconds').val())*1000;
+									}
+									break;
+							}
+							$.APP.state = 'alive';
+							$('#' + $.APP.dir + '_status').html('Running');
+							$.APP.loopTimer();
+						},
+						pauseTimer : function() {
+							$.APP.dp = new Date();
+							$.APP.tp = $.APP.dp.getTime();
+							$.APP.td = $.APP.tp - $.APP.t1;
+							$('#' + $.APP.dir + '_start').val('Resume');
+							$.APP.state = 'pause';
+							$('#' + $.APP.dir + '_status').html('Paused');
+						},
+						stopTimer : function() {
+							$('#' + $.APP.dir + '_start').val('Restart');
+							$.APP.state = 'stop';
+							$('#' + $.APP.dir + '_status').html('Stopped');
+						},
+						resetTimer : function() {
+							$('#' + $.APP.dir + '_ms,#' + $.APP.dir + '_s,#' + $.APP.dir + '_m,#' + $.APP.dir + '_h').html('00');
+							$('#' + $.APP.dir + '_start').val('Start');
+							$.APP.state = 'reset';
+							$('#' + $.APP.dir + '_status').html('Reset & Idle again');
+						},
+						endTimer : function(callback) {
+							$('#' + $.APP.dir + '_start').val('Restart');
+							$.APP.state = 'end';
+							if (typeof callback === 'function') {
+								callback();
+							}
+						},
+						loopTimer : function() {
+							var td;
+							var d2,t2;
+							var ms = 0;
+							var s  = 0;
+							var m  = 0;
+							var h  = 0;
+							if ($.APP.state === 'alive') {
+								d2 = new Date();
+								t2 = d2.getTime();
+								if ($.APP.dir === 'sw') {
+									td = t2 - $.APP.t1;
+								}
+								else {
+									td = $.APP.t1 - t2;
+									if (td <= 0) {
+										$.APP.endTimer(function(){
+											$.APP.resetTimer();
+											$('#' + $.APP.dir + '_status').html('Ended & Reset');
+										});
+									}
+								}
+								ms = td%1000;
+								if (ms < 1) {
+									ms = 0;
+								}
+								else {
+									s = (td-ms)/1000;
+									if (s < 1) {
+										s = 0;
+									}
+									else {
+										var m = (s-(s%60))/60;
+										if (m < 1) {
+											m = 0;
+										}
+										else {
+											var h = (m-(m%60))/60;
+											if (h < 1) {
+												h = 0;
+											}
+										}
+									}
+								}
+								ms = Math.round(ms/100);
+								s  = s-(m*60);
+								m  = m-(h*60);
+								$('#' + $.APP.dir + '_ms').html($.APP.formatTimer(ms));
+								$('#' + $.APP.dir + '_s').html($.APP.formatTimer(s));
+								$('#' + $.APP.dir + '_m').html($.APP.formatTimer(m));
+								$('#' + $.APP.dir + '_h').html($.APP.formatTimer(h));
+								$.APP.t = setTimeout($.APP.loopTimer,1);
+							}
+							else {
+								clearTimeout($.APP.t);
+								return true;
+							}
+						}
+					}
+				});
+				$('#sw_start').on('click', function() {
+					$.APP.startTimer('sw');
+				});
+				$('#cd_start').on('click', function() {
+					$.APP.startTimer('cd');
+				});
+				$('#sw_stop,#cd_stop').on('click', function() {
+					$.APP.stopTimer();
+				});
+				$('#sw_reset,#cd_reset').on('click', function() {
+					$.APP.resetTimer();
+				});
+				$('#sw_pause,#cd_pause').on('click', function() {
+					$.APP.pauseTimer();
+				});
+			})(jQuery);
+		});
+	</script>
+  </body>
+</html>
